@@ -1,0 +1,52 @@
+predictors:
+  # add as many predictors as you wish
+  mistic_hg19:
+    file_path: 
+    # score_index is the index of the column containing the score in the bgzip compressed file (col1 : pos 0)
+    score_index: 
+    score_threshold: 
+    # following for pathogenic 'gt' (>) or 'lt' (<) score_threshold
+    score_sort: 
+    # following indexes correspond to the position of ref and alt nts in the bgzipped file (col1 : pos 0)
+    ref_index: 
+    alt_index: 
+  clinpred_hg19:
+    file_path: 
+    score_index: 
+    score_threshold: 
+    score_sort: 
+    ref_index: 
+    alt_index: 
+  revel_hg38:
+    file_path: 
+    score_index: 
+    score_threshold: 
+    score_sort: 
+    ref_index: 
+    alt_index: 
+truth_set:
+  # add as many truth set as you wish
+  # there should be one pathogenic and one neutral file for each truth set
+  path: /path/to/root/folder/for/truth/files
+  pathogenic:
+    xx_hg19:
+      full_name: xx_hg19_missense_pathogenic_dataset.txt
+    xx_hg38:
+      full_name: xx_hg38_missense_pathogenic_dataset.txt
+    yy_hg19:
+      full_name: yy_hg19_missense_pathogenic_dataset.txt
+    yy_hg38:
+      full_name: yy_hg38_missense_pathogenic_dataset.txt
+  neutral:
+    xx_hg19:
+      full_name: xx_hg19_missense_neutral_dataset.txt
+    xx_hg38:
+      full_name: xx_hg38_missense_neutral_dataset.txt
+    yy_hg19:
+      full_name: yy_hg19_missense_neutral_dataset.txt
+    yy_hg38:
+      full_name: yy_hg38_missense_neutral_dataset.txt
+    
+
+
+    
