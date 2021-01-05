@@ -1,2 +1,2 @@
 # ponp_eval
-Script to automatise Pathogenic-Or-Not Predictors assessment
+Script to automate Pathogenic-Or-Not Predictors assessment
