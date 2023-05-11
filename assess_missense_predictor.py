@@ -35,7 +35,7 @@ def main():
                         help='prefix of truth set files (see config file)')
     parser.add_argument('-c', '--config-file', default='', required=True,
                         help='Config file yaml format. See assess_missense.yaml for examples.')
-    
+
     args = parser.parse_args()
     predictor = args.predictor
     truth_set_name = args.truth_set
@@ -43,11 +43,11 @@ def main():
     if os.path.splitext(args.config_file)[1] == '.yaml':
         # get config file
         config = yaml.safe_load(open(args.config_file))
-        
+
         predictors = config['predictors']
         truth_set = config['truth_set']
         # log('DEBUG', truth_set)
-        
+
         if predictor in predictors and \
                 truth_set_name in truth_set['pathogenic'] and \
                 truth_set_name in truth_set['neutral']:
@@ -55,12 +55,12 @@ def main():
             log('INFO', 'Predictor file path: {0}'.format(predictors[predictor]['file_path']))
             log('INFO', 'Pathogenic truth file: {0}{1}'.format(truth_set['path'], truth_set['pathogenic'][truth_set_name]['full_name']))
             log('INFO', 'Neutral truth file: {0}{1}'.format(truth_set['path'], truth_set['neutral'][truth_set_name]['full_name']))
-            
+
             total_set_pathogenic, total_set_pathogenic_analysed, tp, fp, res_dict_pathogenic = assess_variant('pathogenic', predictor, truth_set_name, predictors, truth_set)
             # log('DEBUG', 'TP: {0} - FP: {1}'.format(tp, fp))
             total_set_neutral, total_set_neutral_analysed, tn, fn, res_dict_neutral = assess_variant('neutral', predictor, truth_set_name, predictors, truth_set)
             # log('DEBUG', 'TN: {0} - FN: {1}'.format(tn, fn))
-                
+
             statistics = compute_statistics(tp, fp, tn, fn)
             # log('DEBUG', res_dict_pathogenic)
             perc_pathogenic_analysed = "%.2f" % ((total_set_pathogenic_analysed / total_set_pathogenic) * 100)
@@ -70,9 +70,9 @@ def main():
                 total_set_pathogenic
             ))
             # log('INFO', 'Total number of pathogenic variants tested: {}'.format(total_set_pathogenic))
-            log('INFO', 'Number of pathogenic variants correctly predicted (TP): {}'.format(tp))
-            log('INFO', 'Number of pathogenic variants uncorrectly predicted (FP): {}'.format(fp))
-            
+            log('INFO', f'Number of pathogenic variants correctly predicted (TP): {tp}')
+            log('INFO', f'Number of pathogenic variants uncorrectly predicted (FP): {fp}')
+
             perc_neutral_analysed = "%.2f" % ((total_set_neutral_analysed / total_set_neutral) * 100)
             log('INFO', '% of analysed neutral variants: {0} % ({1}/{2})'.format(
                 perc_neutral_analysed,
@@ -80,9 +80,9 @@ def main():
                 total_set_neutral
             ))
             #log('INFO', 'Total number of neutral variants tested: {}'.format(total_set_neutral))
-            log('INFO', 'Number of neutral variants correctly predicted (TN): {}'.format(tn))
-            log('INFO', 'Number of neutral variants uncorrectly predicted (FN): {}'.format(fn))
-            
+            log('INFO', f'Number of neutral variants correctly predicted (TN): {tn}')
+            log('INFO', f'Number of neutral variants uncorrectly predicted (FN): {fn}')
+
             for stat in statistics:
                 log('INFO', '{0}: {1}'.format(stat, statistics[stat]))
 
@@ -106,13 +106,15 @@ def assess_variant(dataset, predictor, truth_set_name, predictors, truth_set):
         for variant in variant_set:
             if re.search(r'^[^#]', variant):
                 total_set += 1
-                match_obj = re.search(r'^chr([\dXY]{1,2}):g\.(\d+)([ATGC])>([ATGC])\s+(.+)$', variant)
-                if match_obj:
-                    chrom = match_obj.group(1)
-                    pos = match_obj.group(2)
-                    ref = match_obj.group(3)
-                    alt = match_obj.group(4)
-                    classif = match_obj.group(5)                        
+                if match_obj := re.search(
+                    r'^chr([\dXY]{1,2}):g\.(\d+)([ATGC])>([ATGC])\s+(.+)$',
+                    variant,
+                ):
+                    chrom = match_obj[1]
+                    pos = match_obj[2]
+                    ref = match_obj[3]
+                    alt = match_obj[4]
+                    classif = match_obj[5]
                     # tabix query
                     tb = tabix.open(predictors[predictor]['file_path'])
                     query = "{0}:{1}-{2}".format(chrom, pos, pos)
@@ -121,8 +123,7 @@ def assess_variant(dataset, predictor, truth_set_name, predictors, truth_set):
                     except Exception as e:
                         # log('DEBUG', 'Tabix failed:{0} for variant {1}'.format(e.args, 'chr{0}:g.{1}{2}>{3}'.format(chrom, pos, ref, alt)))
                         continue
-                    records = tb.querys(query)
-                    if records:
+                    if records := tb.querys(query):
                         for record in records:
                             # log('DEBUG', 'tabix: {0} - variant: chr{1}:g.{2}{3}>{4}'.format(record, chrom, pos, ref, alt))
                             # log('DEBUG', 'File ref: {0} - ref: {1} - File alt:{2} - alt: {3}'.format(record[predictors[predictor]['ref_index']], ref, record[predictors[predictor]['alt_index']], alt))
@@ -138,22 +139,7 @@ def assess_variant(dataset, predictor, truth_set_name, predictors, truth_set):
                                     # log('DEBUG', '{0} - {1}'.format(scores, score))
                                 if str(score) == '.':
                                     break
-                                if dataset == 'pathogenic':
-                                    if predictors[predictor]['score_sort'] == 'gt':
-                                        if float(score) > float(predictors[predictor]['score_threshold']):
-                                            # TP
-                                            true += 1
-                                        else:
-                                            # FP
-                                            false += 1
-                                    else:
-                                        if float(score) < float(predictors[predictor]['score_threshold']):
-                                            # TP
-                                            true += 1
-                                        else:
-                                            # FP
-                                            false += 1
-                                elif dataset == 'neutral':
+                                if dataset == 'neutral':
                                     if predictors[predictor]['score_sort'] == 'gt':
                                         if float(score) < float(predictors[predictor]['score_threshold']):
                                             # TP
@@ -161,21 +147,40 @@ def assess_variant(dataset, predictor, truth_set_name, predictors, truth_set):
                                         else:
                                             # FP
                                             false += 1
+                                    elif float(score) > float(predictors[predictor]['score_threshold']):
+                                        # TP
+                                        true += 1
                                     else:
+                                        # FP
+                                        false += 1
+                                elif dataset == 'pathogenic':
+                                    if predictors[predictor]['score_sort'] == 'gt':
                                         if float(score) > float(predictors[predictor]['score_threshold']):
                                             # TP
                                             true += 1
                                         else:
                                             # FP
                                             false += 1
-                                res_dict['chr{0}:g.{1}{2}>{3}'.format(chrom, pos, ref, alt)] = {
-                                    '{}_class'.format(truth_set_name): classif,
-                                    '{}_score'.format(predictor): record[predictors[predictor]['score_index']]
+                                    elif float(score) < float(predictors[predictor]['score_threshold']):
+                                        # TP
+                                        true += 1
+                                    else:
+                                        # FP
+                                        false += 1
+                                res_dict[
+                                    'chr{0}:g.{1}{2}>{3}'.format(
+                                        chrom, pos, ref, alt
+                                    )
+                                ] = {
+                                    f'{truth_set_name}_class': classif,
+                                    f'{predictor}_score': record[
+                                        predictors[predictor]['score_index']
+                                    ],
                                 }
                                 total_set_analysed += 1
                                 break
                 else:
-                    log('WARNING', 'Wrong format for variant line: {}'.format(variant))
+                    log('WARNING', f'Wrong format for variant line: {variant}')
             else:
                 log('INFO', variant.rstrip())
     return total_set, total_set_analysed, true, false, res_dict
